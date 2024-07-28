@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>简单文字RPG</title>
+    <link rel="stylesheet" href="样式.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="status-bar">
+            <p>角色状态</p>
+            <div id="player-status">玩家HP: 100, MP: 50</div>
+        </div>
+        <div id="game-map">
+            <p>你身处昏暗的地牢，准备探索未知的区域。</p>
+        </div>
+        <div id="action-buttons">
+            <button id="attack-button">攻击</button>
+            <button id="item-button">使用道具</button>
+            <button id="talk-button">对话</button>
+            <button id="magic-button">使用魔法</button>
+            <button id="inventory-button">打开储物栏</button>
+            <!-- 假设的击败敌人按钮 -->
+            <button id="defeat-enemy-button">击败敌人</button>
+        </div>
+        <div id="item-inventory" style="display: none;">
+            <h2>储物栏</h2>
+            <table id="item-table">
+                <!-- 道具表格将通过JavaScript动态生成 -->
+            </table>
+        </div>
+        <div id="chat-log">
+            <!-- 在这里显示游戏日志或聊天信息 -->
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let playerHP = 100; // 玩家初始生命值
+            let playerMP = 50;  // 玩家初始魔法值
+            let enemyHP = 50;   // 敌人初始生命值
+            const chatLog = document.querySelector('#chat-log');
+            const playerStatus = document.querySelector('#player-status');
+            const itemTable = document.getElementById('item-table');
+            const items = [
+                { id: 1, name: '生命药水', effect: '恢复20HP', quantity: 0 },
+                { id: 2, name: '魔法药水', effect: '恢复20MP', quantity: 0 }
+            ];
+
+            // 更新玩家状态显示
+            function updatePlayerStatus() {
+                playerStatus.textContent = `玩家HP: ${playerHP}, MP: ${playerMP}`;
+            }
+
+            // 攻击逻辑
+            function attack() {
+                if (enemyHP <= 0) {
+                    chatLog.innerHTML += '<p>敌人已经被击败！</p>';
+                    enemyHP = 50; // 重置敌人生命值，以供再次战斗
+                    return;
+                }
+                enemyHP -= 10; // 假设每次攻击敌人减少10点生命值
+                chatLog.innerHTML += '<p>你攻击了敌人，敌人剩余HP: ' + enemyHP + '。</p>';
+                enemyCounterAttack(); // 敌人反击
+                updatePlayerStatus();
+            }
+
+            // 敌人反击逻辑
+            function enemyCounterAttack() {
+                if (Math.random() < 0.5) { // 假设敌人有50%的几率反击
+                    playerHP -= 5; // 敌人每次反击减少玩家5点生命值
+                    chatLog.innerHTML += '<p>敌人反击了，你的HP减少了5点。</p>';
+                }
+                if (playerHP <= 0) {
+                    chatLog.innerHTML += '<p>你被击败了！</p>';
+                    playerHP = 100; // 重置玩家生命值
+                }
+            }
+
+            // 使用魔法逻辑
+            function useMagic() {
+                if (playerMP >= 10) {
+                    playerMP -= 10; // 使用魔法消耗10点MP
+                    enemyHP -= 20; // 魔法攻击比普通攻击伤害更高
+                    chatLog.innerHTML += '<p>你使用了魔法攻击，敌人剩余HP: ' + enemyHP + '。</p>';
+                    enemyCounterAttack();
+                    updatePlayerStatus();
+                } else {
+                    chatLog.innerHTML += '<p>你的MP不足，无法使用魔法。</p>';
+                }
+            }
+
+            // 使用道具逻辑
+            function useItem(itemName) {
+                const item = items.find(i => i.name === itemName);
+                if (item && item.quantity > 0) {
+                    if (item.name === '生命药水') {
+                        playerHP += 20;
+                        playerHP = Math.min(playerHP, 100);
+                        item.quantity--;
+                    } else if (item.name === '魔法药水') {
+                        playerMP += 20;
+                        playerMP = Math.min(playerMP, 50);
+                        item.quantity--;
+                    }
+                    chatLog.innerHTML += `<p>你使用了${item.name}，${item.effect}。</p>`;
+                    updatePlayerStatus();
+                    updateInventoryTable();
+                } else {
+                    chatLog.innerHTML += `<p>你没有这个道具或数量不足。</p>`;
+                }
+            }
+
+            // 对话逻辑
+            function talk() {
+                chatLog.innerHTML += '<p>你尝试与敌人对话，但它看起来并不友好。</p>';
+            }
+
+            // 显示储物栏界面
+            function showInventory() {
+                document.getElementById('item-inventory').style.display = 'block';
+                updateInventoryTable();
+            }
+
+            // 更新储物栏表格
+            function updateInventoryTable() {
+                itemTable.innerHTML = ''; // 清空现有表格内容
+                const header = itemTable.createTHead();
+                const headerRow = header.insertRow();
+                const headers = ['道具名称', '数量', '效果'];
+                headers.forEach(headerText => {
+                    const headerCell = document.createElement('th');
+                    headerCell.textContent = headerText;
+                    headerRow.appendChild(headerCell);
+                });
+
+                items.forEach((item, index) => {
+                    const row = itemTable.insertRow();
+                    const cellName = row.insertCell();
+                    const cellQuantity = row.insertCell();
+                    const cellEffect = row.insertCell();
+                    cellName.textContent = item.name;
+                    cellQuantity.textContent = item.quantity;
+                    cellEffect.textContent = item.effect;
+
+                    // 可以在这里添加点击事件来使用道具
+                    cellName.addEventListener('click', () => useItem(item.name));
+                });
+            }
+
+            // 模拟敌人被击败后掉落道具
+            function enemyDefeated() {
+                if (Math.random() < 0.1) { // 10%的几率掉落生命药水
+                    const lifePotion = items.find(item => item.name === '生命药水');
+                    if (lifePotion) {
+                        lifePotion.quantity++;
+                        chatLog.innerHTML += `<p>击败敌人后，你获得了一瓶生命药水。</p>`;
+                    }
+                }
+            }
+
+            // 绑定按钮事件
+            document.getElementById('attack-button').addEventListener('click', attack);
+            document.getElementById('item-button').addEventListener('click', useItem);
+            document.getElementById('talk-button').addEventListener('click', talk);
+            document.getElementById('magic-button').addEventListener('click', useMagic);
+            document.getElementById('inventory-button').addEventListener('click', showInventory);
+            document.getElementById('defeat-enemy-button').addEventListener('click', enemyDefeated);
+
+            // 初始状态更新
+            updatePlayerStatus();
+            updateInventoryTable();
+        });
+    </script>
+</body>
+</html>
